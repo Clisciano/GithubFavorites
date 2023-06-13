@@ -1,19 +1,4 @@
-export class GithubUser {
-    static async search(username) {
-        const endpoint = `https://api.github.com/users/${username}`
-
-        const data = await fetch(endpoint)
-        const { login, name, public_repos, followers } = await data.json()
-        return ({
-            login,
-            name,
-            public_repos,
-            followers
-        })
-    }
-}
-
-
+import { GithubUser } from "./GithubUser.js"
 // classe que vai conter a lógica dos dados
 // como  os dados serão estruturados
 
@@ -26,31 +11,28 @@ export class Favorites {
     }
 
     load() {
-        // this.entries = []
-        // this.entries = [
-        //     {
-        //         login: 'maykbrito',
-        //         name: 'Mayk Brito',
-        //         public_repos: '70',
-        //         followers: '120000'
-        //     },
-        //     {
-        //         login: 'clisciano',
-        //         name: 'Clisciano Souza',
-        //         public_repos: '26',
-        //         followers: '1200'
-        //     }
-        // ]
+               
         this.entries = JSON.parse(localStorage.getItem('@github-favorites:')) || []
+    }
 
+    save() {
+       localStorage.setItem('@github-favorites:', JSON.stringify(this.entries) ) 
     }
 
     async add(username) {
         try {
+            const userExists = this.entries.find(entry => entry.login === username)
+            if(userExists) {
+                throw new Error('usuario já cadastrado!')
+            }
             const user = await GithubUser.search(username)
             if (user.login === undefined) {
                 throw new Error('usuario não encontrado!')
-            }
+            }            
+            
+            this.entries = [user, ...this.entries]
+            this.update()
+            this.save()
         }
         catch (error) {
             alert(error.message)
@@ -59,7 +41,9 @@ export class Favorites {
 
     delete(user) {
         const filteredEntries = this.entries.filter(entry => entry.login !== user.login)
-
+        this.entries = filteredEntries
+        this.update()
+        this.save()
     }
 }
 
@@ -88,6 +72,7 @@ export class FavoritesView extends Favorites {
             const row = this.createRow()
             row.querySelector('.users img').src = `https://github.com/${user.login}.png`
             row.querySelector('.users img').alt = `Imagem de ${user.name}.png`
+            row.querySelector('.users a').href = `https://github.com/${user.login}`
             row.querySelector('.users p').textContent = user.name
             row.querySelector('.users span').textContent = user.login
             row.querySelector('.repositories').textContent = user.public_repos
